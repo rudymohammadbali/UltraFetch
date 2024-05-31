@@ -6,6 +6,8 @@
 
 This is a GUI application for downloading YouTube videos, built with PyQt5 and QFluentWidgets. It's designed for Windows systems.
 
+### [<img alt="Static Badge" src="https://img.shields.io/badge/https%3A%2F%2Fimg.shields.io%2Fbadge%2Fany_text-v0.0.1-blue?style=flat&label=Download%20UltraFetch.exe" width="300" height="30">](https://github.com/rudymohammadbali/UltraFetch/releases/download/v0.0.1/UltraFetch-0.0.1.zip)
+
 ![demo](https://github.com/rudymohammadbali/UltraFetch/assets/63475761/fe6d0f3b-a85a-4428-9b76-5641c5d33206)
 
 ## Features
