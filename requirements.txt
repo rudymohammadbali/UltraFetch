@@ -1,0 +1,4 @@
+validators~=0.28.1
+PyQt5~=5.15.10
+requests~=2.31.0
+pytube~=15.0.0
