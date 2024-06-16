@@ -7,25 +7,28 @@ from pathlib import Path
 from typing import Union, List
 
 import requests
-import validators
 from pytube import YouTube, Playlist
 
-
-def validate_url(url: str) -> bool:
-    return validators.url(url)
+from src.functions import validate_url
 
 
 def remove_file(path: str) -> None:
-    if os.path.isfile(path):
-        os.remove(path)
+    try:
+        if os.path.isfile(path):
+            os.remove(path)
+    except Exception:
+        pass
 
 
 def remove_files(paths: Union[str, List[str]]) -> None:
-    if isinstance(paths, list):
-        for path in paths:
-            remove_file(path)
-    else:
-        remove_file(paths)
+    try:
+        if isinstance(paths, list):
+            for path in paths:
+                remove_file(path)
+        else:
+            remove_file(paths)
+    except Exception:
+        pass
 
 
 def format_publish_date(publish_date: datetime) -> str:
@@ -62,11 +65,6 @@ def format_view_count(views: int) -> str:
 
 
 def rename_title(title: str) -> str:
-    """
-    Removes special characters from video title to be a valid filename
-    :param title: video title to be renamed
-    :return: new title
-    """
     title = re.sub(r'[\\/*?:"<>|.]', '', title).strip()
     title = title.replace(" ", "_")
     return title
@@ -76,10 +74,6 @@ class PytubeFunction:
     CREATION_FLAGS = 0x08000000  # hides ffmpeg console
 
     def __init__(self, output_dir: str):
-        """
-        A class to handle various operations related to YouTube videos.
-        :param output_dir: The directory where the downloaded files will be stored.
-        """
         self.output_dir = output_dir
         self.download_path = Path(__file__).parent / "assets" / "downloads"
 
@@ -96,25 +90,28 @@ class PytubeFunction:
 
     def download_audio(self, url: str, progress_callback: any, complete_callback: any,
                        all_complete_callback: any) -> None:
-        if validate_url(url):
-            yt_obj = YouTube(url, progress_callback, complete_callback)
+        try:
+            if validate_url(url):
+                yt_obj = YouTube(url, progress_callback, complete_callback)
 
-            video_title = yt_obj.title
-            title = rename_title(video_title)
-            output_file = Path(self.output_dir) / f"{title}.mp3"
+                video_title = yt_obj.title
+                title = rename_title(video_title)
+                output_file = Path(self.output_dir) / f"{title}.mp3"
 
-            audio_stream = yt_obj.streams.filter(only_audio=True).order_by('abr').desc().first()
+                audio_stream = yt_obj.streams.filter(only_audio=True).order_by('abr').desc().first()
 
-            audio_path = audio_stream.download(output_path=str(self.download_path), filename='audio')
+                audio_path = audio_stream.download(output_path=str(self.download_path), filename='audio')
 
-            subprocess.run(['ffmpeg', '-y', '-i', audio_path, '-c:a', 'libmp3lame', output_file],
-                           creationflags=self.CREATION_FLAGS)
+                subprocess.run(['ffmpeg', '-y', '-i', audio_path, '-c:a', 'libmp3lame', output_file],
+                               creationflags=self.CREATION_FLAGS)
 
-            # Clean up temp files
-            remove_files(str(audio_path))
+                # Clean up temp files
+                remove_files(str(audio_path))
 
-            # Process complete
-            all_complete_callback()
+                # Process complete
+                all_complete_callback()
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
     def download_video(self, url: str, progress_callback: any, complete_callback: any,
                        all_complete_callback: any) -> None:
@@ -148,39 +145,48 @@ class PytubeFunction:
             all_complete_callback()
 
     def search_playlist(self, url: str):
-        if validate_url(url):
-            p = Playlist(url)
-            title = p.title
-            owner = p.owner
-            videos = f"{p.length} videos"
-            views = format_view_count(p.views)
-            d = p.last_updated
-            dt = datetime.combine(d, datetime.min.time())
-            updated = format_publish_date(dt)
+        try:
+            if validate_url(url):
+                p = Playlist(url)
+                title = p.title
+                owner = p.owner
+                videos = f"{p.length} videos"
+                views = format_view_count(p.views)
+                d = p.last_updated
+                if isinstance(d, str):
+                    updated = "N/A"
+                else:
+                    dt = datetime.combine(d, datetime.min.time())
+                    updated = format_publish_date(dt)
 
-            video_details = []
-            video_urls = []
+                video_details = []
+                video_urls = []
 
-            for video_url in p.video_urls:
-                video_urls.append(video_url)
-                video_detail = self.quick_search(video_url)
-                video_details.append(video_detail)
+                for video_url in p.video_urls:
+                    video_urls.append(video_url)
+                    video_detail = self.quick_search(video_url)
+                    video_details.append(video_detail)
 
-            return {"title": title, "owner": owner, "videos": videos, "views": views, "last_updated": updated,
-                    "video_info": video_details, "video_urls": video_urls}
+                return {"title": title, "owner": owner, "videos": videos, "views": views, "last_updated": updated,
+                        "video_info": video_details, "video_urls": video_urls}
+        except Exception as e:
+            return {"error": str(e)}
 
     def quick_search(self, url: str) -> dict:
-        if validate_url(url):
-            yt_obj = YouTube(url)
-            title = yt_obj.title
-            owner = yt_obj.author
-            channel_url = yt_obj.channel_url
-            thumbnail_url = yt_obj.thumbnail_url
-            thumbnail_path = self.download_thumbnail(thumbnail_url)
-            views = format_view_count(yt_obj.views)
-            publish_date = format_publish_date(yt_obj.publish_date)
+        try:
+            if validate_url(url):
+                yt_obj = YouTube(url)
+                title = yt_obj.title
+                owner = yt_obj.author
+                channel_url = yt_obj.channel_url
+                thumbnail_url = yt_obj.thumbnail_url
+                thumbnail_path = self.download_thumbnail(thumbnail_url)
+                views = format_view_count(yt_obj.views)
+                publish_date = format_publish_date(yt_obj.publish_date)
 
-            return {"title": title, "owner": owner, "channel_url": channel_url, "thumbnail_url": thumbnail_url,
-                    "thumbnail_path": thumbnail_path,
-                    "views": views,
-                    "publish_date": publish_date}
+                return {"title": title, "owner": owner, "channel_url": channel_url, "thumbnail_url": thumbnail_url,
+                        "thumbnail_path": thumbnail_path,
+                        "views": views,
+                        "publish_date": publish_date}
+        except Exception as e:
+            return {"error": str(e)}
